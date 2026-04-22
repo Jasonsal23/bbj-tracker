@@ -1,0 +1,1102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="theme-color" content="#0a0a0a" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<title>BBJ Leads</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif&family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  :root {
+    --bg: #0a0a0a;
+    --surface: #141414;
+    --surface-2: #1c1c1c;
+    --border: #262626;
+    --border-bright: #333;
+    --text: #f5f5f5;
+    --text-dim: #a3a3a3;
+    --text-faint: #6b6b6b;
+    --accent: #d4a574;
+    --accent-dim: #8b6b4d;
+    --cold: #525252;
+    --warm: #d4a574;
+    --hot: #e87d3e;
+    --client: #7cb342;
+    --lost: #8b2e2e;
+    --radius: 10px;
+    --radius-sm: 6px;
+  }
+
+  html, body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', -apple-system, sans-serif;
+    font-size: 15px;
+    line-height: 1.5;
+    overscroll-behavior-y: none;
+    min-height: 100vh;
+  }
+
+  body {
+    padding: 0 0 80px 0;
+    max-width: 720px;
+    margin: 0 auto;
+  }
+
+  /* Header */
+  .header {
+    padding: 28px 20px 20px;
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    background: rgba(10, 10, 10, 0.92);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    z-index: 50;
+  }
+  .header h1 {
+    font-family: 'Instrument Serif', serif;
+    font-size: 34px;
+    font-weight: 400;
+    letter-spacing: -0.01em;
+    line-height: 1;
+  }
+  .header .brand {
+    color: var(--accent);
+    font-style: italic;
+  }
+  .header p {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    margin-top: 8px;
+  }
+
+  /* Stats */
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  .stat {
+    background: var(--surface);
+    padding: 12px 10px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    text-align: center;
+  }
+  .stat-value {
+    font-family: 'Instrument Serif', serif;
+    font-size: 26px;
+    color: var(--text);
+    line-height: 1;
+  }
+  .stat-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-top: 4px;
+  }
+
+  /* Controls */
+  .controls {
+    padding: 16px 20px 8px;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .filter-btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    padding: 6px 12px;
+    border-radius: 100px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .filter-btn:hover { border-color: var(--border-bright); color: var(--text); }
+  .filter-btn.active {
+    background: var(--accent);
+    color: var(--bg);
+    border-color: var(--accent);
+  }
+
+  /* Lead list */
+  .leads {
+    padding: 8px 20px 20px;
+  }
+  .lead {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin-bottom: 10px;
+    overflow: hidden;
+    transition: border-color 0.15s ease;
+  }
+  .lead:hover { border-color: var(--border-bright); }
+  .lead.expanded { border-color: var(--accent-dim); }
+
+  .lead-head {
+    padding: 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+  }
+  .lead-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .lead-main {
+    flex: 1;
+    min-width: 0;
+  }
+  .lead-name {
+    font-weight: 600;
+    font-size: 15px;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .lead-meta {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-top: 3px;
+  }
+  .lead-stage {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    padding: 4px 8px;
+    border-radius: 100px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    flex-shrink: 0;
+  }
+
+  .stage-cold { background: rgba(82, 82, 82, 0.2); color: var(--text-dim); }
+  .stage-warm { background: rgba(212, 165, 116, 0.15); color: var(--warm); }
+  .stage-hot { background: rgba(232, 125, 62, 0.15); color: var(--hot); }
+  .stage-client { background: rgba(124, 179, 66, 0.15); color: var(--client); }
+  .stage-lost { background: rgba(139, 46, 46, 0.2); color: #d87676; }
+
+  .lead-body {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease;
+  }
+  .lead.expanded .lead-body {
+    max-height: 4000px;
+  }
+  .lead-body-inner {
+    padding: 0 16px 16px 16px;
+    border-top: 1px solid var(--border);
+    padding-top: 16px;
+  }
+
+  /* Detail grid */
+  .detail-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+  .detail {
+    background: var(--surface-2);
+    padding: 10px 12px;
+    border-radius: var(--radius-sm);
+  }
+  .detail-full { grid-column: 1 / -1; }
+  .detail-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 4px;
+  }
+  .detail-value {
+    font-size: 13px;
+    color: var(--text);
+    word-break: break-word;
+  }
+  .detail-value.empty { color: var(--text-faint); font-style: italic; }
+
+  /* Section */
+  .section-title {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    margin: 18px 0 10px;
+  }
+
+  /* Timeline */
+  .timeline {
+    position: relative;
+    padding-left: 18px;
+  }
+  .timeline::before {
+    content: '';
+    position: absolute;
+    left: 4px;
+    top: 6px;
+    bottom: 6px;
+    width: 1px;
+    background: var(--border-bright);
+  }
+  .timeline-item {
+    position: relative;
+    margin-bottom: 12px;
+    padding-left: 4px;
+  }
+  .timeline-item::before {
+    content: '';
+    position: absolute;
+    left: -18px;
+    top: 5px;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 0 3px var(--bg);
+  }
+  .timeline-date {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+  .timeline-text {
+    font-size: 13px;
+    color: var(--text);
+    margin-top: 2px;
+  }
+  .timeline-delete {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    color: var(--text-faint);
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    margin-left: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+  .timeline-delete:hover { color: var(--hot); }
+
+  /* Project phases */
+  .phases {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+  }
+  .phase {
+    flex: 1;
+    min-width: 80px;
+    padding: 10px 8px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .phase.done {
+    background: rgba(124, 179, 66, 0.1);
+    border-color: var(--client);
+  }
+  .phase.current {
+    background: rgba(212, 165, 116, 0.1);
+    border-color: var(--accent);
+  }
+  .phase-name {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-dim);
+  }
+  .phase.done .phase-name, .phase.current .phase-name { color: var(--text); }
+  .phase-check {
+    font-size: 14px;
+    margin-top: 3px;
+    color: var(--text-faint);
+  }
+  .phase.done .phase-check { color: var(--client); }
+  .phase.current .phase-check { color: var(--accent); }
+
+  /* Actions */
+  .action-row {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+  }
+  .btn {
+    flex: 1;
+    min-width: 70px;
+    padding: 9px 10px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: var(--radius-sm);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .btn:hover { border-color: var(--border-bright); background: var(--border); }
+  .btn-primary {
+    background: var(--accent);
+    color: var(--bg);
+    border-color: var(--accent);
+    font-weight: 600;
+  }
+  .btn-primary:hover { background: #e0b382; border-color: #e0b382; }
+  .btn-danger { color: #d87676; }
+  .btn-danger:hover { background: rgba(139, 46, 46, 0.15); border-color: var(--lost); }
+
+  /* Input area */
+  .input-row {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 8px;
+  }
+  .input-row input, .input-row textarea, .input-row select {
+    flex: 1;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 9px 12px;
+    border-radius: var(--radius-sm);
+    font-family: inherit;
+    font-size: 13px;
+  }
+  .input-row input:focus, .input-row textarea:focus, .input-row select:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+  .input-row textarea { resize: vertical; min-height: 60px; font-family: inherit; }
+
+  /* Add button (FAB) */
+  .fab {
+    position: fixed;
+    bottom: 20px;
+    right: calc(50% - 360px + 20px);
+    width: 56px;
+    height: 56px;
+    background: var(--accent);
+    color: var(--bg);
+    border: none;
+    border-radius: 50%;
+    font-size: 28px;
+    cursor: pointer;
+    box-shadow: 0 8px 24px rgba(212, 165, 116, 0.35);
+    z-index: 100;
+    transition: transform 0.15s ease;
+    font-weight: 400;
+  }
+  .fab:hover { transform: scale(1.05); }
+  .fab:active { transform: scale(0.95); }
+  @media (max-width: 760px) { .fab { right: 20px; } }
+
+  /* Modal */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    z-index: 200;
+    display: none;
+    align-items: flex-end;
+    justify-content: center;
+  }
+  .modal-overlay.active {
+    display: flex;
+  }
+  .modal {
+    background: var(--surface);
+    width: 100%;
+    max-width: 640px;
+    max-height: 92vh;
+    border-radius: 16px 16px 0 0;
+    padding: 24px 20px;
+    overflow-y: auto;
+    border-top: 1px solid var(--border-bright);
+  }
+  @media (min-width: 641px) {
+    .modal-overlay { align-items: center; }
+    .modal { border-radius: 16px; max-height: 80vh; }
+  }
+  .modal h2 {
+    font-family: 'Instrument Serif', serif;
+    font-size: 24px;
+    font-weight: 400;
+    margin-bottom: 4px;
+  }
+  .modal p.subtitle {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    margin-bottom: 20px;
+  }
+  .field { margin-bottom: 14px; }
+  .field label {
+    display: block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 6px;
+  }
+  .field input, .field textarea, .field select {
+    width: 100%;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 11px 14px;
+    border-radius: var(--radius-sm);
+    font-family: inherit;
+    font-size: 14px;
+  }
+  .field input:focus, .field textarea:focus, .field select:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+  .field textarea { resize: vertical; min-height: 70px; }
+
+  .modal-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 20px;
+  }
+  .modal-actions .btn { flex: 1; padding: 12px; font-size: 11px; }
+
+  /* Empty state */
+  .empty {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text-faint);
+  }
+  .empty h3 {
+    font-family: 'Instrument Serif', serif;
+    font-size: 22px;
+    font-weight: 400;
+    color: var(--text-dim);
+    margin-bottom: 8px;
+  }
+  .empty p {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+  }
+
+  /* Scroll */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border-bright); border-radius: 3px; }
+
+  /* Next action reminder */
+  .next-action {
+    background: rgba(212, 165, 116, 0.08);
+    border-left: 2px solid var(--accent);
+    padding: 10px 12px;
+    border-radius: 4px;
+    font-size: 13px;
+    color: var(--text);
+    margin-bottom: 14px;
+  }
+  .next-action-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    margin-bottom: 4px;
+  }
+  .overdue { color: var(--hot); }
+
+  /* Export bar */
+  .toolbar {
+    padding: 10px 20px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+  }
+  .toolbar .btn { flex: 0 0 auto; min-width: unset; padding: 6px 12px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1><span class="brand">BBJ</span> Lead Tracker</h1>
+  <p>Built by Jason · Sales Pipeline</p>
+</div>
+
+<div class="stats" id="stats"></div>
+
+<div class="controls" id="controls">
+  <button class="filter-btn active" data-filter="all">All</button>
+  <button class="filter-btn" data-filter="cold">Cold</button>
+  <button class="filter-btn" data-filter="warm">Warm</button>
+  <button class="filter-btn" data-filter="hot">Hot</button>
+  <button class="filter-btn" data-filter="client">Clients</button>
+  <button class="filter-btn" data-filter="lost">Lost</button>
+  <button class="filter-btn" data-filter="followup">Follow Up</button>
+</div>
+
+<div class="leads" id="leads"></div>
+
+<div class="toolbar">
+  <button class="btn" onclick="exportData()">Export</button>
+  <button class="btn" onclick="importData()">Import</button>
+</div>
+
+<button class="fab" onclick="openAddModal()" aria-label="Add lead">+</button>
+
+<!-- Add/Edit Modal -->
+<div class="modal-overlay" id="modalOverlay" onclick="if(event.target===this) closeModal()">
+  <div class="modal">
+    <h2 id="modalTitle">New Lead</h2>
+    <p class="subtitle" id="modalSubtitle">Add shop details</p>
+
+    <div class="field">
+      <label>Shop Name *</label>
+      <input type="text" id="f_name" placeholder="e.g. Fade Factory" />
+    </div>
+    <div class="field">
+      <label>Owner / Contact</label>
+      <input type="text" id="f_owner" placeholder="e.g. Mike" />
+    </div>
+    <div class="field">
+      <label>Phone</label>
+      <input type="tel" id="f_phone" placeholder="(702) 555-1234" />
+    </div>
+    <div class="field">
+      <label>Address / Area</label>
+      <input type="text" id="f_address" placeholder="e.g. Summerlin" />
+    </div>
+    <div class="field">
+      <label>Stage</label>
+      <select id="f_stage">
+        <option value="cold">Cold — dropped card</option>
+        <option value="warm">Warm — had real conversation</option>
+        <option value="hot">Hot — meeting scheduled / quoted</option>
+        <option value="client">Client — signed</option>
+        <option value="lost">Lost — passed</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Tier Interest</label>
+      <select id="f_tier">
+        <option value="">Not yet discussed</option>
+        <option value="clean">Clean Up ($1,200 + $49/mo)</option>
+        <option value="shape">Shape Up ($2,800 + $129/mo)</option>
+        <option value="send">Full Send ($4,200 + $229/mo)</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Next Action (what + when)</label>
+      <input type="text" id="f_nextaction" placeholder="e.g. Text to follow up" />
+    </div>
+    <div class="field">
+      <label>Next Action Date</label>
+      <input type="date" id="f_nextdate" />
+    </div>
+    <div class="field">
+      <label>First Impression Notes</label>
+      <textarea id="f_notes" placeholder="What's the shop like? Any observations? What did they say?"></textarea>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveLead()">Save</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const STORAGE_KEY = 'bbj_leads_v1';
+let leads = [];
+let currentFilter = 'all';
+let editingId = null;
+let expandedId = null;
+
+// Load
+function load() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    leads = raw ? JSON.parse(raw) : [];
+  } catch (e) { leads = []; }
+}
+function save() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(leads));
+}
+
+// Utilities
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
+function today() { return new Date().toISOString().split('T')[0]; }
+function fmtDate(iso) {
+  if (!iso) return '';
+  const d = new Date(iso + 'T12:00:00');
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+function fmtDateShort(iso) {
+  if (!iso) return '';
+  const d = new Date(iso + 'T12:00:00');
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+function daysBetween(iso) {
+  if (!iso) return null;
+  const d = new Date(iso + 'T12:00:00');
+  const now = new Date();
+  now.setHours(12,0,0,0);
+  return Math.round((d - now) / (1000*60*60*24));
+}
+function escHtml(s) {
+  if (!s) return '';
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+// Tier labels
+const TIER_LABEL = {
+  clean: 'Clean Up · $1,200 + $49/mo',
+  shape: 'Shape Up · $2,800 + $129/mo',
+  send:  'Full Send · $4,200 + $229/mo',
+  '':    ''
+};
+
+// Project phases (for signed clients)
+const PHASES = ['Discovery', 'Design', 'Build', 'Review', 'Launch', 'Live'];
+
+// Stats
+function renderStats() {
+  const stats = {
+    total: leads.length,
+    pipeline: leads.filter(l => ['cold','warm','hot'].includes(l.stage)).length,
+    clients: leads.filter(l => l.stage === 'client').length,
+    mrr: leads.filter(l => l.stage === 'client').reduce((sum, l) => {
+      const m = {clean: 49, shape: 129, send: 229}[l.tier] || 0;
+      return sum + m;
+    }, 0)
+  };
+  document.getElementById('stats').innerHTML = `
+    <div class="stat"><div class="stat-value">${stats.total}</div><div class="stat-label">Leads</div></div>
+    <div class="stat"><div class="stat-value">${stats.pipeline}</div><div class="stat-label">Pipeline</div></div>
+    <div class="stat"><div class="stat-value">${stats.clients}</div><div class="stat-label">Clients</div></div>
+    <div class="stat"><div class="stat-value">$${stats.mrr}</div><div class="stat-label">MRR</div></div>
+  `;
+}
+
+// Filters
+document.querySelectorAll('.filter-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentFilter = btn.dataset.filter;
+    renderLeads();
+  });
+});
+
+// Render leads
+function renderLeads() {
+  const container = document.getElementById('leads');
+  let filtered = [...leads];
+
+  if (currentFilter === 'followup') {
+    filtered = filtered.filter(l => {
+      if (!l.nextActionDate) return false;
+      const days = daysBetween(l.nextActionDate);
+      return days !== null && days <= 2 && !['client','lost'].includes(l.stage);
+    });
+  } else if (currentFilter !== 'all') {
+    filtered = filtered.filter(l => l.stage === currentFilter);
+  }
+
+  // Sort: by next action date asc (overdue first), then created desc
+  filtered.sort((a, b) => {
+    const aDate = a.nextActionDate || '9999-99-99';
+    const bDate = b.nextActionDate || '9999-99-99';
+    if (aDate !== bDate) return aDate.localeCompare(bDate);
+    return (b.createdAt || 0) - (a.createdAt || 0);
+  });
+
+  if (filtered.length === 0) {
+    container.innerHTML = `
+      <div class="empty">
+        <h3>No leads here yet</h3>
+        <p>${currentFilter === 'all' ? 'Tap + to add your first walk-in' : 'Nothing in this stage'}</p>
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = filtered.map(lead => renderLead(lead)).join('');
+}
+
+function renderLead(lead) {
+  const isExpanded = expandedId === lead.id;
+  const dotColor = {
+    cold: 'var(--cold)', warm: 'var(--warm)', hot: 'var(--hot)',
+    client: 'var(--client)', lost: 'var(--lost)'
+  }[lead.stage];
+
+  const stageLabel = {
+    cold: 'Cold', warm: 'Warm', hot: 'Hot', client: 'Client', lost: 'Lost'
+  }[lead.stage];
+
+  let nextActionHtml = '';
+  if (lead.nextAction && lead.nextActionDate && !['client','lost'].includes(lead.stage)) {
+    const days = daysBetween(lead.nextActionDate);
+    let dateText;
+    if (days < 0) dateText = `Overdue by ${Math.abs(days)}d`;
+    else if (days === 0) dateText = 'Today';
+    else if (days === 1) dateText = 'Tomorrow';
+    else dateText = `In ${days}d · ${fmtDateShort(lead.nextActionDate)}`;
+    nextActionHtml = `
+      <div class="next-action">
+        <div class="next-action-label ${days < 0 ? 'overdue' : ''}">Next: ${dateText}</div>
+        ${escHtml(lead.nextAction)}
+      </div>
+    `;
+  }
+
+  const metaParts = [];
+  if (lead.owner) metaParts.push(escHtml(lead.owner));
+  if (lead.address) metaParts.push(escHtml(lead.address));
+  metaParts.push(fmtDateShort(lead.createdDate || today()));
+
+  return `
+    <div class="lead ${isExpanded ? 'expanded' : ''}" data-id="${lead.id}">
+      <div class="lead-head" onclick="toggleLead('${lead.id}')">
+        <div class="lead-dot" style="background:${dotColor}"></div>
+        <div class="lead-main">
+          <div class="lead-name">${escHtml(lead.name)}</div>
+          <div class="lead-meta">${metaParts.join(' · ')}</div>
+        </div>
+        <div class="lead-stage stage-${lead.stage}">${stageLabel}</div>
+      </div>
+      <div class="lead-body">
+        <div class="lead-body-inner">
+          ${nextActionHtml}
+          ${renderLeadDetails(lead)}
+          ${lead.stage === 'client' ? renderPhases(lead) : ''}
+          ${renderTimeline(lead)}
+          ${renderAddNote(lead)}
+          ${renderActions(lead)}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderLeadDetails(lead) {
+  return `
+    <div class="detail-grid">
+      <div class="detail">
+        <div class="detail-label">Phone</div>
+        <div class="detail-value ${!lead.phone ? 'empty' : ''}">${escHtml(lead.phone) || '—'}</div>
+      </div>
+      <div class="detail">
+        <div class="detail-label">Tier</div>
+        <div class="detail-value ${!lead.tier ? 'empty' : ''}">${TIER_LABEL[lead.tier || ''] || '—'}</div>
+      </div>
+      ${lead.notes ? `
+        <div class="detail detail-full">
+          <div class="detail-label">Notes</div>
+          <div class="detail-value">${escHtml(lead.notes).replace(/\n/g, '<br>')}</div>
+        </div>
+      ` : ''}
+    </div>
+  `;
+}
+
+function renderPhases(lead) {
+  const currentIdx = lead.phaseIdx ?? 0;
+  return `
+    <div class="section-title">Project Progress</div>
+    <div class="phases">
+      ${PHASES.map((p, i) => `
+        <div class="phase ${i < currentIdx ? 'done' : i === currentIdx ? 'current' : ''}" onclick="setPhase('${lead.id}', ${i})">
+          <div class="phase-name">${p}</div>
+          <div class="phase-check">${i < currentIdx ? '✓' : i === currentIdx ? '●' : '○'}</div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+function renderTimeline(lead) {
+  const entries = lead.timeline || [];
+  if (entries.length === 0) {
+    return `<div class="section-title">Activity</div><div class="detail-value empty" style="padding:4px 0 10px;">No activity logged yet</div>`;
+  }
+  const sorted = [...entries].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+  return `
+    <div class="section-title">Activity</div>
+    <div class="timeline">
+      ${sorted.map(e => `
+        <div class="timeline-item">
+          <div class="timeline-date">${fmtDate(e.date)}
+            <button class="timeline-delete" onclick="deleteNote('${lead.id}','${e.id}')">Delete</button>
+          </div>
+          <div class="timeline-text">${escHtml(e.text).replace(/\n/g, '<br>')}</div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+function renderAddNote(lead) {
+  return `
+    <div class="section-title">Log New Activity</div>
+    <div class="input-row">
+      <textarea id="note_${lead.id}" placeholder="Texted to follow up. Owner said send pricing. Replied with quote for Shape Up."></textarea>
+    </div>
+    <div class="action-row">
+      <button class="btn btn-primary" onclick="addNote('${lead.id}')">Log Activity</button>
+    </div>
+  `;
+}
+
+function renderActions(lead) {
+  return `
+    <div class="section-title">Actions</div>
+    <div class="action-row">
+      <button class="btn" onclick="changeStage('${lead.id}')">Change Stage</button>
+      <button class="btn" onclick="editLead('${lead.id}')">Edit</button>
+      <button class="btn btn-danger" onclick="deleteLead('${lead.id}')">Delete</button>
+    </div>
+  `;
+}
+
+// Interactions
+function toggleLead(id) {
+  expandedId = expandedId === id ? null : id;
+  renderLeads();
+}
+
+function addNote(id) {
+  const textarea = document.getElementById('note_' + id);
+  const text = textarea.value.trim();
+  if (!text) return;
+  const lead = leads.find(l => l.id === id);
+  if (!lead) return;
+  if (!lead.timeline) lead.timeline = [];
+  lead.timeline.push({ id: uid(), date: today(), text });
+  save();
+  renderLeads();
+  renderStats();
+}
+
+function deleteNote(leadId, noteId) {
+  const lead = leads.find(l => l.id === leadId);
+  if (!lead || !lead.timeline) return;
+  lead.timeline = lead.timeline.filter(e => e.id !== noteId);
+  save();
+  renderLeads();
+}
+
+function setPhase(leadId, idx) {
+  const lead = leads.find(l => l.id === leadId);
+  if (!lead) return;
+  lead.phaseIdx = idx;
+  if (!lead.timeline) lead.timeline = [];
+  lead.timeline.push({ id: uid(), date: today(), text: `→ Moved to ${PHASES[idx]} phase` });
+  save();
+  renderLeads();
+}
+
+function changeStage(id) {
+  const lead = leads.find(l => l.id === id);
+  if (!lead) return;
+  const stages = ['cold','warm','hot','client','lost'];
+  const labels = ['Cold','Warm','Hot','Client','Lost'];
+  const current = stages.indexOf(lead.stage);
+  const choice = prompt(
+    `Change stage for ${lead.name}:\n\n` +
+    stages.map((s,i) => `${i+1}. ${labels[i]}${i===current?' (current)':''}`).join('\n') +
+    `\n\nEnter number 1-5:`,
+    (current + 1).toString()
+  );
+  if (!choice) return;
+  const idx = parseInt(choice) - 1;
+  if (idx < 0 || idx >= stages.length) return;
+  const oldStage = lead.stage;
+  lead.stage = stages[idx];
+  if (!lead.timeline) lead.timeline = [];
+  lead.timeline.push({ id: uid(), date: today(), text: `→ Stage changed: ${labels[current]} → ${labels[idx]}` });
+  if (lead.stage === 'client' && lead.phaseIdx === undefined) lead.phaseIdx = 0;
+  save();
+  renderLeads();
+  renderStats();
+}
+
+// Modal
+function openAddModal() {
+  editingId = null;
+  document.getElementById('modalTitle').textContent = 'New Lead';
+  document.getElementById('modalSubtitle').textContent = 'Add shop details';
+  ['f_name','f_owner','f_phone','f_address','f_nextaction','f_notes'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('f_stage').value = 'cold';
+  document.getElementById('f_tier').value = '';
+  document.getElementById('f_nextdate').value = '';
+  document.getElementById('modalOverlay').classList.add('active');
+  setTimeout(() => document.getElementById('f_name').focus(), 100);
+}
+
+function editLead(id) {
+  const lead = leads.find(l => l.id === id);
+  if (!lead) return;
+  editingId = id;
+  document.getElementById('modalTitle').textContent = 'Edit Lead';
+  document.getElementById('modalSubtitle').textContent = lead.name;
+  document.getElementById('f_name').value = lead.name || '';
+  document.getElementById('f_owner').value = lead.owner || '';
+  document.getElementById('f_phone').value = lead.phone || '';
+  document.getElementById('f_address').value = lead.address || '';
+  document.getElementById('f_stage').value = lead.stage || 'cold';
+  document.getElementById('f_tier').value = lead.tier || '';
+  document.getElementById('f_nextaction').value = lead.nextAction || '';
+  document.getElementById('f_nextdate').value = lead.nextActionDate || '';
+  document.getElementById('f_notes').value = lead.notes || '';
+  document.getElementById('modalOverlay').classList.add('active');
+}
+
+function closeModal() {
+  document.getElementById('modalOverlay').classList.remove('active');
+  editingId = null;
+}
+
+function saveLead() {
+  const name = document.getElementById('f_name').value.trim();
+  if (!name) {
+    alert('Shop name is required');
+    return;
+  }
+  const data = {
+    name,
+    owner: document.getElementById('f_owner').value.trim(),
+    phone: document.getElementById('f_phone').value.trim(),
+    address: document.getElementById('f_address').value.trim(),
+    stage: document.getElementById('f_stage').value,
+    tier: document.getElementById('f_tier').value,
+    nextAction: document.getElementById('f_nextaction').value.trim(),
+    nextActionDate: document.getElementById('f_nextdate').value,
+    notes: document.getElementById('f_notes').value.trim()
+  };
+
+  if (editingId) {
+    const lead = leads.find(l => l.id === editingId);
+    Object.assign(lead, data);
+  } else {
+    const newLead = {
+      id: uid(),
+      ...data,
+      createdAt: Date.now(),
+      createdDate: today(),
+      timeline: [{ id: uid(), date: today(), text: '→ Lead created' }]
+    };
+    if (newLead.stage === 'client') newLead.phaseIdx = 0;
+    leads.push(newLead);
+    expandedId = newLead.id;
+  }
+
+  save();
+  renderLeads();
+  renderStats();
+  closeModal();
+}
+
+function deleteLead(id) {
+  const lead = leads.find(l => l.id === id);
+  if (!lead) return;
+  if (!confirm(`Delete ${lead.name}? This cannot be undone.`)) return;
+  leads = leads.filter(l => l.id !== id);
+  if (expandedId === id) expandedId = null;
+  save();
+  renderLeads();
+  renderStats();
+}
+
+// Export / Import
+function exportData() {
+  const data = JSON.stringify(leads, null, 2);
+  const blob = new Blob([data], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `bbj-leads-${today()}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importData() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'application/json';
+  input.onchange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const data = JSON.parse(ev.target.result);
+        if (!Array.isArray(data)) throw new Error('Invalid format');
+        if (confirm(`Import ${data.length} leads? This will REPLACE your current data.`)) {
+          leads = data;
+          save();
+          renderLeads();
+          renderStats();
+        }
+      } catch (err) {
+        alert('Import failed: ' + err.message);
+      }
+    };
+    reader.readAsText(file);
+  };
+  input.click();
+}
+
+// Init
+load();
+renderStats();
+renderLeads();
+</script>
+
+</body>
+</html>
