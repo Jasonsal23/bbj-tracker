@@ -586,6 +586,13 @@
   <button class="btn" onclick="importData()">Import</button>
 </div>
 
+<!-- Auth overlay -->
+<div id="authOverlay" style="display:none; position:fixed; inset:0; background:rgba(10,10,10,0.97); z-index:999; align-items:center; justify-content:center; flex-direction:column; gap:16px;">
+  <h2 style="font-family:'Instrument Serif',serif; font-size:28px; color:#f5f5f5;">BBJ Lead Tracker</h2>
+  <p style="font-family:'JetBrains Mono',monospace; font-size:10px; color:#6b6b6b; text-transform:uppercase; letter-spacing:0.15em;">Sign in to sync across all your devices</p>
+  <button onclick="signIn()" style="margin-top:8px; padding:12px 28px; background:#d4a574; color:#0a0a0a; border:none; border-radius:8px; font-family:'JetBrains Mono',monospace; font-size:12px; text-transform:uppercase; letter-spacing:0.1em; cursor:pointer; font-weight:600;">Sign in with Google</button>
+</div>
+
 <button class="fab" onclick="openAddModal()" aria-label="Add lead">+</button>
 
 <!-- Add/Edit Modal -->
@@ -649,22 +656,58 @@
   </div>
 </div>
 
-<script>
-const STORAGE_KEY = 'bbj_leads_v1';
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-app.js";
+import { getAuth, onAuthStateChanged, signInWithPopup, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-auth.js";
+import { getFirestore, collection, doc, onSnapshot, addDoc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDD2l7fdVXU47yg2MHQ-lTz2HBU5q4tt5A",
+  authDomain: "bjj-tracker-54a7e.firebaseapp.com",
+  projectId: "bjj-tracker-54a7e",
+  storageBucket: "bjj-tracker-54a7e.firebasestorage.app",
+  messagingSenderId: "754688532897",
+  appId: "1:754688532897:web:8d2012225573b1965debe0",
+  measurementId: "G-34E0KS9SY8"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
 let leads = [];
 let currentFilter = 'all';
 let editingId = null;
 let expandedId = null;
+let leadsRef = null;
+let unsubscribe = null;
 
-// Load
-function load() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    leads = raw ? JSON.parse(raw) : [];
-  } catch (e) { leads = []; }
+// Auth
+onAuthStateChanged(auth, user => {
+  if (user) {
+    document.getElementById('authOverlay').style.display = 'none';
+    leadsRef = collection(db, 'users', user.uid, 'leads');
+    startListening();
+  } else {
+    document.getElementById('authOverlay').style.display = 'flex';
+    if (unsubscribe) unsubscribe();
+    leads = [];
+    renderLeads();
+    renderStats();
+  }
+});
+
+function signIn() {
+  signInWithPopup(auth, new GoogleAuthProvider());
 }
-function save() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(leads));
+
+function startListening() {
+  if (unsubscribe) unsubscribe();
+  unsubscribe = onSnapshot(leadsRef, snapshot => {
+    leads = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+    renderLeads();
+    renderStats();
+  });
 }
 
 // Utilities
@@ -910,38 +953,31 @@ function toggleLead(id) {
   renderLeads();
 }
 
-function addNote(id) {
+async function addNote(id) {
   const textarea = document.getElementById('note_' + id);
   const text = textarea.value.trim();
   if (!text) return;
   const lead = leads.find(l => l.id === id);
   if (!lead) return;
-  if (!lead.timeline) lead.timeline = [];
-  lead.timeline.push({ id: uid(), date: today(), text });
-  save();
-  renderLeads();
-  renderStats();
+  const timeline = [...(lead.timeline || []), { id: uid(), date: today(), text }];
+  await updateDoc(doc(leadsRef, id), { timeline });
 }
 
-function deleteNote(leadId, noteId) {
+async function deleteNote(leadId, noteId) {
   const lead = leads.find(l => l.id === leadId);
   if (!lead || !lead.timeline) return;
-  lead.timeline = lead.timeline.filter(e => e.id !== noteId);
-  save();
-  renderLeads();
+  const timeline = lead.timeline.filter(e => e.id !== noteId);
+  await updateDoc(doc(leadsRef, leadId), { timeline });
 }
 
-function setPhase(leadId, idx) {
+async function setPhase(leadId, idx) {
   const lead = leads.find(l => l.id === leadId);
   if (!lead) return;
-  lead.phaseIdx = idx;
-  if (!lead.timeline) lead.timeline = [];
-  lead.timeline.push({ id: uid(), date: today(), text: `→ Moved to ${PHASES[idx]} phase` });
-  save();
-  renderLeads();
+  const timeline = [...(lead.timeline || []), { id: uid(), date: today(), text: `→ Moved to ${PHASES[idx]} phase` }];
+  await updateDoc(doc(leadsRef, leadId), { phaseIdx: idx, timeline });
 }
 
-function changeStage(id) {
+async function changeStage(id) {
   const lead = leads.find(l => l.id === id);
   if (!lead) return;
   const stages = ['cold','warm','hot','client','lost'];
@@ -956,14 +992,10 @@ function changeStage(id) {
   if (!choice) return;
   const idx = parseInt(choice) - 1;
   if (idx < 0 || idx >= stages.length) return;
-  const oldStage = lead.stage;
-  lead.stage = stages[idx];
-  if (!lead.timeline) lead.timeline = [];
-  lead.timeline.push({ id: uid(), date: today(), text: `→ Stage changed: ${labels[current]} → ${labels[idx]}` });
-  if (lead.stage === 'client' && lead.phaseIdx === undefined) lead.phaseIdx = 0;
-  save();
-  renderLeads();
-  renderStats();
+  const timeline = [...(lead.timeline || []), { id: uid(), date: today(), text: `→ Stage changed: ${labels[current]} → ${labels[idx]}` }];
+  const upd = { stage: stages[idx], timeline };
+  if (stages[idx] === 'client' && lead.phaseIdx === undefined) upd.phaseIdx = 0;
+  await updateDoc(doc(leadsRef, id), upd);
 }
 
 // Modal
@@ -1002,12 +1034,9 @@ function closeModal() {
   editingId = null;
 }
 
-function saveLead() {
+async function saveLead() {
   const name = document.getElementById('f_name').value.trim();
-  if (!name) {
-    alert('Shop name is required');
-    return;
-  }
+  if (!name) { alert('Shop name is required'); return; }
   const data = {
     name,
     owner: document.getElementById('f_owner').value.trim(),
@@ -1021,36 +1050,28 @@ function saveLead() {
   };
 
   if (editingId) {
-    const lead = leads.find(l => l.id === editingId);
-    Object.assign(lead, data);
+    await updateDoc(doc(leadsRef, editingId), data);
   } else {
     const newLead = {
-      id: uid(),
       ...data,
       createdAt: Date.now(),
       createdDate: today(),
       timeline: [{ id: uid(), date: today(), text: '→ Lead created' }]
     };
     if (newLead.stage === 'client') newLead.phaseIdx = 0;
-    leads.push(newLead);
-    expandedId = newLead.id;
+    const ref = await addDoc(leadsRef, newLead);
+    expandedId = ref.id;
   }
 
-  save();
-  renderLeads();
-  renderStats();
   closeModal();
 }
 
-function deleteLead(id) {
+async function deleteLead(id) {
   const lead = leads.find(l => l.id === id);
   if (!lead) return;
   if (!confirm(`Delete ${lead.name}? This cannot be undone.`)) return;
-  leads = leads.filter(l => l.id !== id);
   if (expandedId === id) expandedId = null;
-  save();
-  renderLeads();
-  renderStats();
+  await deleteDoc(doc(leadsRef, id));
 }
 
 // Export / Import
@@ -1073,15 +1094,13 @@ function importData() {
     const file = e.target.files[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = (ev) => {
+    reader.onload = async (ev) => {
       try {
         const data = JSON.parse(ev.target.result);
         if (!Array.isArray(data)) throw new Error('Invalid format');
-        if (confirm(`Import ${data.length} leads? This will REPLACE your current data.`)) {
-          leads = data;
-          save();
-          renderLeads();
-          renderStats();
+        if (confirm(`Import ${data.length} leads? This will REPLACE your current data.\n\nThis will delete all existing leads and re-upload from the file.`)) {
+          for (const lead of leads) await deleteDoc(doc(leadsRef, lead.id));
+          for (const lead of data) { const { id, ...rest } = lead; await addDoc(leadsRef, rest); }
         }
       } catch (err) {
         alert('Import failed: ' + err.message);
@@ -1092,10 +1111,13 @@ function importData() {
   input.click();
 }
 
-// Init
-load();
-renderStats();
-renderLeads();
+// Expose functions to global scope so inline onclick handlers work inside a module script
+Object.assign(window, {
+  signIn, openAddModal, closeModal, saveLead,
+  toggleLead, editLead, deleteLead, changeStage,
+  addNote, deleteNote, setPhase,
+  exportData, importData
+});
 </script>
 
 </body>
